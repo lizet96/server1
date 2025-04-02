@@ -23,30 +23,35 @@ router.get('/', async (req, res) => {
 router.get('/response-time', async (req, res) => {
   try {
     const db = getFirestore();
+    
+    // Add error handling and logging
+    console.log('Fetching response time data from Firestore');
+    
     const logsSnapshot = await db.collection('logs')
-      .where('responseTime', '>', 0)  // Only get logs with response time
-      .orderBy('responseTime')
       .orderBy('timestamp', 'desc')
-      .limit(50)  // Increased limit to get more data points
+      .limit(50)
       .get();
     
     const responseTimes = [];
     
     logsSnapshot.forEach(doc => {
       const data = doc.data();
-      responseTimes.push({
-        timestamp: data.timestamp,
-        responseTime: parseInt(data.responseTime || '0'),
-        server: data.server || 'server1',
-        endpoint: data.path || data.url || 'unknown'
-      });
+      // Check if responseTime exists before adding to the array
+      if (data.responseTime !== undefined) {
+        responseTimes.push({
+          timestamp: data.timestamp,
+          responseTime: data.responseTime || 0,
+          server: data.server || 'server1',
+          endpoint: data.path || data.url || 'unknown'
+        });
+      }
     });
 
     console.log(`Returning ${responseTimes.length} response time records`);
     res.json(responseTimes);
   } catch (error) {
     console.error('Error fetching response times:', error);
-    res.status(500).json({ error: 'Failed to fetch response times' });
+    res.status(500).json({ error: 'Failed to fetch response times', details: error.message });
   }
 });
 
