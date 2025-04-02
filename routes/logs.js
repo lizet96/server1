@@ -23,31 +23,65 @@ router.get('/', async (req, res) => {
 router.get('/response-time', async (req, res) => {
   try {
     const db = getFirestore();
-    
-    // Add error handling and logging
     console.log('Fetching response time data from Firestore');
     
     const logsSnapshot = await db.collection('logs')
       .orderBy('timestamp', 'desc')
-      .limit(50)
+      .limit(50) // Increased limit to get more data points
       .get();
     
     const responseTimes = [];
     
     logsSnapshot.forEach(doc => {
       const data = doc.data();
-      // Check if responseTime exists before adding to the array
+      
+      // More robust check for responseTime
       if (data.responseTime !== undefined) {
+        // Parse responseTime properly
+        let responseTimeValue;
+        
+        if (typeof data.responseTime === 'number') {
+          responseTimeValue = data.responseTime;
+        } else if (typeof data.responseTime === 'string') {
+          // Handle cases like "123ms" by removing non-numeric characters
+          responseTimeValue = parseInt(data.responseTime.replace(/[^0-9]/g, ''));
+        } else {
+          responseTimeValue = 0;
+        }
+        
+        // Format timestamp consistently
+        let timestamp;
+        if (data.timestamp && typeof data.timestamp === 'object' && data.timestamp.toDate) {
+          // Handle Firestore Timestamp objects
+          timestamp = data.timestamp.toDate().toISOString();
+        } else if (data.timestamp && typeof data.timestamp === 'object' && data.timestamp.seconds) {
+          // Handle Firestore Timestamp-like objects
+          timestamp = new Date(data.timestamp.seconds * 1000).toISOString();
+        } else if (typeof data.timestamp === 'string') {
+          // Already a string, ensure it's a valid date
+          try {
+            timestamp = new Date(data.timestamp).toISOString();
+          } catch (e) {
+            timestamp = new Date().toISOString();
+          }
+        } else {
+          // Fallback
+          timestamp = new Date().toISOString();
+        }
+        
+        // Always explicitly set server to server2 for this server's logs
         responseTimes.push({
-          timestamp: data.timestamp,
-          responseTime: data.responseTime || 0,
-          server: data.server || 'server1',
+          timestamp: timestamp,
+          responseTime: responseTimeValue,
+          server: 'server2', // Explicitly set server to server2
           endpoint: data.path || data.url || 'unknown'
         });
       }
     });
 
     console.log(`Returning ${responseTimes.length} response time records`);
+    console.log('Sample response time data:', responseTimes.slice(0, 2));
+    
     res.json(responseTimes);
   } catch (error) {
     console.error('Error fetching response times:', error);
