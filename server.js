@@ -1,3 +1,6 @@
+require('dotenv').config();
+console.log(process.env.FIREBASE_SERVICE_ACCOUNT); // Add this line to debug
+
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
