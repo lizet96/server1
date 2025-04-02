@@ -34,7 +34,7 @@ app.use((req, res, next) => {
       await db.collection('logs').add({
         path: req.path,
         method: req.method,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(), // Use ISO string format for consistent parsing
         responseTime: responseTime,
         server: 'server1',
         level: 'INFO'
