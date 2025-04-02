@@ -19,29 +19,30 @@ router.get('/', async (req, res) => {
   }
 });
 
-// New endpoint to get response time data
+// Improved endpoint to get response time data
 router.get('/response-time', async (req, res) => {
   try {
     const db = getFirestore();
     const logsSnapshot = await db.collection('logs')
+      .where('responseTime', '>', 0)  // Only get logs with response time
+      .orderBy('responseTime')
       .orderBy('timestamp', 'desc')
-      .limit(20)
+      .limit(50)  // Increased limit to get more data points
       .get();
     
     const responseTimes = [];
     
     logsSnapshot.forEach(doc => {
       const data = doc.data();
-      if (data.responseTime) {
-        responseTimes.push({
-          timestamp: data.timestamp,
-          responseTime: parseInt(data.responseTime),
-          server: data.server || 'server1',
-          endpoint: data.path || data.url
-        });
-      }
+      responseTimes.push({
+        timestamp: data.timestamp,
+        responseTime: parseInt(data.responseTime || '0'),
+        server: data.server || 'server1',
+        endpoint: data.path || data.url || 'unknown'
+      });
     });
 
+    console.log(`Returning ${responseTimes.length} response time records`);
     res.json(responseTimes);
   } catch (error) {
     console.error('Error fetching response times:', error);
