@@ -69,11 +69,11 @@ router.get('/response-time', async (req, res) => {
           timestamp = new Date().toISOString();
         }
         
-        // Always explicitly set server to server2 for this server's logs
+        // FIX: Always explicitly set server to server1 for this server's logs
         responseTimes.push({
           timestamp: timestamp,
           responseTime: responseTimeValue,
-          server: 'server2', // Explicitly set server to server2
+          server: 'server1', // Changed from 'server2' to 'server1'
           endpoint: data.path || data.url || 'unknown'
         });
       }
